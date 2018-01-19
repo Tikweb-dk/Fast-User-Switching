@@ -5,7 +5,7 @@ Donate link: http://www.tikweb.dk/donate/
 Requires at least: 4.6
 Tested up to: 4.9
 Requires PHP: 5.2
-Stable tag: 1.3.5
+Stable tag: 1.3.7
 
 Allow only administrators to switch to and impersonate any site user, by selecting "Impersonate" on the users list.
 
@@ -36,6 +36,12 @@ Log out and you are back, the plugin remembers your original login, and returns 
 3. Recent impersonate user list
 
 == Changelog ==
+
+= 1.3.7 - 2017-11-29 =
+* When switching user on the backend, redirect to the vendor dashboard.
+
+= 1.3.6 - 2017-11-29 =
+* When switching user on the frontend back to the current page.
 
 = 1.3.5 - 2017-11-28 =
 * Fixed "Switch User" issue on the front end, which should not show the black top bar as vendor is not admin.

@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Fast User Switching
  * Description:       Allow only administrators to switch to and impersonate any site user. Choose user to impersonate, by clicking new "Impersonate" link in the user list. To return to your own user, just log out. A log out link is available in the black top menu, top right, profile submenu.
- * Version:           1.3.5
+ * Version:           1.3.7
  * Author:            Tikweb
  * Author URI:        http://www.tikweb.dk/
  * Plugin URI:        http://www.tikweb.com/wordpress/plugins/fast-user-switching/
@@ -180,7 +180,21 @@ if ( !class_exists('Tikweb_Impersonate') ):
 				}				
 			}//End if
 
-			wp_redirect(admin_url());
+			if ( isset($_SERVER['HTTP_REFERER']) && !empty($_SERVER['HTTP_REFERER']) ){
+
+				$redirect_url = $_SERVER['HTTP_REFERER'];
+
+				if ( strpos($redirect_url, '/wp-admin/') != false ){
+					$redirect_url = admin_url();
+				}
+
+			} else {
+
+				$redirect_url = admin_url();
+				
+			}
+
+			wp_redirect( $redirect_url );
 			exit;
 		}//End impersonate
 		
@@ -193,7 +207,14 @@ if ( !class_exists('Tikweb_Impersonate') ):
 				wp_set_auth_cookie($impersonated_by, false);
 				// Unset the cookie
 				setcookie('impersonated_by_'.COOKIEHASH, 0, time()-3600, SITECOOKIEPATH, COOKIE_DOMAIN, false, true);
-				wp_redirect(admin_url());
+
+				if ( isset($_SERVER['HTTP_REFERER']) && !empty($_SERVER['HTTP_REFERER']) ){
+					$redirect_url = $_SERVER['HTTP_REFERER'];
+				} else {
+					$redirect_url = admin_url();
+				}
+
+				wp_redirect( $redirect_url );
 				exit;
 			}
 		}//End unimpersonate
@@ -264,7 +285,7 @@ if ( !class_exists('Tikweb_Impersonate') ):
 	add_action('init', array('Tikweb_Impersonate', 'init'));
 
 	// Admin bar hook
-	add_action('admin_bar_menu', array('Tikweb_Impersonate', 'changeLogoutText'));
+	add_action('admin_bar_menu', array('Tikweb_Impersonate', 'changeLogoutText'), 999);
 endif; 
 
 function tikemp_load_plugin_textdomain() {
@@ -384,7 +405,7 @@ function tikemp_adminbar_rendar(){
 					'title'		=> $html,
 				)
 			);
-		}//if(current_user_can('edit_users'))
+		}//if(current_user_can('manage_optiona'))
 
 	}//if(is_admin_bar_showing())	
 }

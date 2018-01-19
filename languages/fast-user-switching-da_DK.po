@@ -24,11 +24,11 @@ msgstr "Skift til egen bruger"
 msgid "Username or ID"
 msgstr "Brugernavn eller ID"
 
-msgid "Impersonate"
-msgstr "Impersonere"
+msgid "Switch user"
+msgstr "Skift bruger"
 
-msgid "Impersonate User"
-msgstr "Impersonere bruger"
+msgid "Search"
+msgstr "Søg"
 
 msgid "No user found!"
 msgstr "Ingen bruger fundet!"

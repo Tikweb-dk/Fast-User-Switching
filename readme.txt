@@ -5,7 +5,7 @@ Donate link: http://www.tikweb.dk/donate/
 Requires at least: 4.6
 Tested up to: 4.8
 Requires PHP: 5.2
-Stable tag: 1.0.1
+Stable tag: 1.2.2
 
 Allow only administrators to switch to and impersonate any site user, by selecting "Impersonate" on the users list.
 
@@ -37,6 +37,20 @@ Log out and you are back, the plugin remembers your original login, and returns 
 
 == Changelog ==
 
+= 1.2.2 - 2017-10-02 =
+* Fixed front-end style.
+
+= 1.2.1 - 2017-10-02 =
+* Updated .po and .mp files
+
+= 1.2.0 - 2017-10-02 =
+* Shortened the length of the dropdown, so the length matches ex. 5 latest. If you have searched, then length should match 5 latest and 10 search results.
+* The search results included a scroll bar, so you can scroll inside dropdown, and see all results.
+* Fixed the input field in the top bar and the button looks a bit strange in Safari.
+* Added the users access level to each line for last results and search results, so they are listed as “Firstname Surname (Access level)”
+* Changed “Impersonate user” to “Switch user” in all texts.
+* Changed input field “Submit” to “Search/Søg”
+
 = 1.0.1 =
 * Fixed the issue for prior to PHP 5.5
 
@@ -45,5 +59,5 @@ Log out and you are back, the plugin remembers your original login, and returns 
 
 == Upgrade Notice ==
 
-= 1.0.0 =
-* Initial release.
+= x.0.0 =
+* There are nothing else needed, than upgrading from the WordPress plugins screen.

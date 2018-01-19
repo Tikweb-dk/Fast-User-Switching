@@ -33,6 +33,10 @@ jQuery('document').ready(function(){
 
 	$('#wp-admin-bar-tikemp_impresonate_user').click(function(){
 		$('input[id="tikemp_username"]').focus();
-	})
+	});
+
+	$('#tikemp_usearch_result').niceScroll({
+		autohidemode:'leave'
+	});
 
 });

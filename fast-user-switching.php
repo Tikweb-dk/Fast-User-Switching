@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Fast User Switching
  * Description:       Allow only administrators to switch to and impersonate any site user. Choose user to impersonate, by clicking new "Impersonate" link in the user list. To return to your own user, just log out. A log out link is available in the black top menu, top right, profile submenu.
- * Version:           1.0.1
+ * Version:           1.2.2
  * Author:            Tikweb
  * Author URI:        http://www.tikweb.dk/
  * Plugin URI:        http://www.tikweb.com/wordpress/plugins/fast-user-switching/
@@ -58,7 +58,7 @@ if ( !class_exists('Tikweb_Impersonate') ):
 		 * @param $columns - An array of the current columns
 		 */
 		public function user_table_columns($columns) {
-			$columns['Tikweb_Impersonate']	= __('Impersonate', 'fast-user-switching');
+			$columns['Tikweb_Impersonate']	= __('Switch user', 'fast-user-switching');
 			return $columns;
 		}
 		
@@ -73,7 +73,7 @@ if ( !class_exists('Tikweb_Impersonate') ):
 			switch($column) {
 				case 'Tikweb_Impersonate':
 					$impersonate_url	= admin_url("?impersonate=$user_id");
-					return "<a href='$impersonate_url'>".__('Impersonate','fast-user-switching')."</a>";
+					return "<a href='$impersonate_url'>".__('Switch user','fast-user-switching')."</a>";
 				default: 
 					return $value;
 			}
@@ -82,7 +82,8 @@ if ( !class_exists('Tikweb_Impersonate') ):
 		public function saveRecentUser($user){
 
 			$recent_user_opt = get_option('tikemp_recent_imp_users',[]);
-			$keep = $user->data->ID.'&'.$user->data->user_login;
+			$roles = tikemp_get_readable_rolename($user->roles[0]);
+			$keep = $user->data->ID.'&'.$user->data->display_name.'&'.$roles;
 
 			if ( !in_array($keep, $recent_user_opt) ){
 				array_unshift( $recent_user_opt, $keep );
@@ -94,7 +95,7 @@ if ( !class_exists('Tikweb_Impersonate') ):
 				array_unshift($recent_user_opt, $keep);
 			}
 
-			$recent_user_opt = array_slice($recent_user_opt, 0,10);
+			$recent_user_opt = array_slice($recent_user_opt, 0,5);
 			update_option('tikemp_recent_imp_users',$recent_user_opt);
 
 		}//End saveRecentUser
@@ -228,7 +229,8 @@ add_action('plugins_loaded', 'tikemp_load_plugin_textdomain');
  * @return [type] [description]
  */
 function tikemp_scripts(){
-	wp_enqueue_script('tikemp_script', plugins_url( '/js/script.js', __FILE__ ), array( 'jquery' ) );
+	wp_enqueue_script('tikemp_search_scroll', plugins_url( '/js/jquery.nicescroll.min.js', __FILE__ ), array( 'jquery' ),'1.1',true);
+	wp_enqueue_script('tikemp_script', plugins_url( '/js/script.js', __FILE__ ), array( 'jquery','tikemp_search_scroll' ),'1.2',true);
 }
 
 add_action( 'admin_enqueue_scripts', 'tikemp_scripts' );
@@ -244,8 +246,14 @@ function tikemp_impersonate_rusers(){
 
 	if ( !empty($opt) ){
 		foreach ($opt as $key => $value) {
+			
 			$user = explode('&', $value);
-			$ret .= '<a href="'.admin_url("?impersonate=$user[0]").'">'.$user[1].'</a>'.PHP_EOL;
+			
+			$user_id = isset($user[0]) ? $user[0] : null;
+			$user_name = isset($user[1]) ? $user[1] : null;
+			$user_role = isset($user[2]) ? $user[2] : null;
+
+			$ret .= '<a href="'.admin_url("?impersonate=$user_id").'">'.$user_name.' ('.$user_role.')'.'</a>'.PHP_EOL;
 		}
 	}
 
@@ -269,7 +277,7 @@ function tikemp_adminbar_rendar(){
 			$wp_admin_bar->add_menu(
 				array(
 					'id'    => 'tikemp_impresonate_user',
-					'title' => __('Impersonate User','fast-user-switching'),
+					'title' => __('Switch user','fast-user-switching'),
 					'href'  => '#',
 				)
 			);
@@ -278,7 +286,7 @@ function tikemp_adminbar_rendar(){
 			$html = '<div id="tikemp_search">';
 				$html .= '<form action="#" method="POST" id="tikemp_usearch_form" class="clear">';
 					$html .= '<input type="text" name="tikemp_username" id="tikemp_username" placeholder="'.__('Username or ID','fast-user-switching').'">';
-					$html .= '<input type="submit" value="'.__('Submit','fast-user-switching').'" id="tikemp_search_submit">';
+					$html .= '<input type="submit" value="'.__('Search','fast-user-switching').'" id="tikemp_search_submit">';
 					$html .= '<input type="hidden" name="tikemp_search_nonce" value="'.wp_create_nonce( "tikemp_search_nonce" ).'">';
 					$html .= '<div class="wp-clearfix"></div>';
 				$html .= '</form>';
@@ -322,15 +330,16 @@ function tikemp_user_search(){
 	$user_query = new WP_User_Query( $args );
 	$ret = '';
 
-	if ( !empty($user_query->results) ){
+	$site_roles = tikemp_get_roles();
 
+	if ( !empty($user_query->results) ){
 		foreach ( $user_query->results as $user ) {
 
 			if( $user->ID == get_current_user_id() ) {
 				continue;
 			}
 
-			$ret .= '<a href="'.admin_url("?impersonate={$user->ID}").'">'.$user->user_login.'</a>'.PHP_EOL;
+			$ret .= '<a href="'.admin_url("?impersonate={$user->ID}").'">'.$user->display_name.' ('.$site_roles[$user->roles[0]].')'.'</a>'.PHP_EOL;
 		}
 	} else {
 		$ret .= '<strong>'.__('No user found!','fast-user-switching').'</strong>'.PHP_EOL;
@@ -348,12 +357,40 @@ add_action( 'wp_ajax_nopriv_tikemp_user_search', 'tikemp_user_search' );
 function tikemp_styles(){
 ?>
 <style type="text/css">
-#wpadminbar .quicklinks #wp-admin-bar-tikemp_impresonate_user ul li .ab-item{height:auto}#wpadminbar .quicklinks #wp-admin-bar-tikemp_impresonate_user #tikemp_username{height:22px;font-size:13px;padding:2px;width:145px;border-radius:2px;float:left;box-sizing:border-box}#tikemp_search{width:200px;box-sizing:border-box}#tikemp_search_submit{height:22px;padding:2px;line-height:1.1;font-size:13px;border:0;float:right;background-color:#fff;border-radius:2px;width:50px;box-sizing:border-box}
+#wpadminbar .quicklinks #wp-admin-bar-tikemp_impresonate_user ul li .ab-item{height:auto}#wpadminbar .quicklinks #wp-admin-bar-tikemp_impresonate_user #tikemp_username{height:22px;font-size:13px !important;padding:2px;width:145px;border-radius:2px !important;float:left;box-sizing:border-box !important;line-height: 10px;}#tikemp_search{width:auto;box-sizing:border-box}#tikemp_search_submit{height:22px;padding:2px;line-height:1.1;font-size:13px !important;border:0 !important;float:right;background-color:#fff !important;border-radius:2px !important;width:74px;box-sizing:border-box;color:#000 !important;}#tikemp_usearch_result{max-height: 320px;overflow-y: auto;margin-top:10px;float:left;}#tikemp_usearch_form{width: 226px}#tikemp_recent_users{float:left;}form#tikemp_usearch_form input[type="text"]{background-color:#fff !important;}
 </style>
 <?php
 }
 add_action( 'wp_head', 'tikemp_styles' );
 add_action( 'admin_head', 'tikemp_styles' );
+
+/**
+ * Get site user roles
+ * @return array array of roles and capabilities.
+ */
+function tikemp_get_roles(){
+	
+	$all_roles = wp_roles()->roles;
+    
+    $return_array = [];
+    
+    foreach($all_roles as $key => $role){
+        $return_array[$key] = $role['name'];
+    }
+
+    return $return_array;
+}
+
+/**
+ * Return readable rolename
+ */
+function tikemp_get_readable_rolename($role){
+	$all_roles = tikemp_get_roles();
+
+	$ret = isset($all_roles[$role]) ? $all_roles[$role] : 'subscriber';
+
+	return $ret;
+}
 
 /**
  * Set ajax url

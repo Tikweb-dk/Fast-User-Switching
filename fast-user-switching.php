@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Fast User Switching
  * Description:       Allow only administrators to switch to and impersonate any site user. Choose user to impersonate, by clicking new "Impersonate" link in the user list. To return to your own user, just log out. A log out link is available in the black top menu, top right, profile submenu.
- * Version:           1.3.3
+ * Version:           1.3.5
  * Author:            Tikweb
  * Author URI:        http://www.tikweb.dk/
  * Plugin URI:        http://www.tikweb.com/wordpress/plugins/fast-user-switching/
@@ -349,7 +349,7 @@ function tikemp_adminbar_rendar(){
 		global $wp_admin_bar;
 
 		// if current user can edit_users than he can see this.
-		if(current_user_can('edit_users')){
+		if(current_user_can('manage_options')){
 
 			$wp_admin_bar->add_menu(
 				array(
@@ -406,6 +406,10 @@ function tikemp_user_search(){
 	$args = array(
 		'search'	=> is_numeric( $query ) ? $query : '*' . $query . '*'
 	);
+
+	if ( !is_email( $query ) && strpos($query, '@') !== false ){
+		$args['search_columns'] = ['user_login','user_email'];
+	}
 
 	$user_query = new WP_User_Query( $args );
 	$ret = '';

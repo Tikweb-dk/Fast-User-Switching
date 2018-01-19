@@ -3,9 +3,9 @@ Contributors: kasperta
 Tags: authentication, user, switch, switching, admin, impersonate
 Donate link: http://www.tikweb.dk/donate/
 Requires at least: 4.6
-Tested up to: 4.8.2
+Tested up to: 4.9
 Requires PHP: 5.2
-Stable tag: 1.3.3
+Stable tag: 1.3.5
 
 Allow only administrators to switch to and impersonate any site user, by selecting "Impersonate" on the users list.
 
@@ -36,6 +36,12 @@ Log out and you are back, the plugin remembers your original login, and returns 
 3. Recent impersonate user list
 
 == Changelog ==
+
+= 1.3.5 - 2017-11-28 =
+* Fixed "Switch User" issue on the front end, which should not show the black top bar as vendor is not admin.
+
+= 1.3.4 - 2017-11-22 =
+* To be able to search in e-mail address, user name, ID and person names.
 
 = 1.3.3 - 2017-10-11 =
 * Added a new link to the plugin settings below the line “Settings”.

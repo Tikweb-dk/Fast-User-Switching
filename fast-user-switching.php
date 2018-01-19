@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Fast User Switching
  * Description:       Allow only administrators to switch to and impersonate any site user. Choose user to impersonate, by clicking new "Impersonate" link in the user list. To return to your own user, just log out. A log out link is available in the black top menu, top right, profile submenu.
- * Version:           1.2.2
+ * Version:           1.3.3
  * Author:            Tikweb
  * Author URI:        http://www.tikweb.dk/
  * Plugin URI:        http://www.tikweb.com/wordpress/plugins/fast-user-switching/
@@ -28,6 +28,34 @@ along with Fast User Switching. If not, see http://www.gnu.org/licenses/gpl-2.0.
 */
 
 if(!defined('ABSPATH')) exit;
+
+/**
+ * Options page
+ */
+include __DIR__.'/admin-option.php';
+
+/**
+ * Register Activation hook
+ */
+register_activation_hook( __FILE__, 'tikemp_installation' );
+
+/**
+ * Run after installtion
+ */
+function tikemp_installation(){
+
+	$fus_settings = get_option('fus_settings',[]);
+
+	if ( empty($fus_settings) ){
+
+		$fus_settings['fus_name'] = 1;
+		$fus_settings['fus_role'] = 1;
+		$fus_settings['fus_username'] = 1;
+
+		update_option( 'fus_settings', $fus_settings );
+	}
+}
+
 
 if ( !class_exists('Tikweb_Impersonate') ):
 
@@ -81,9 +109,30 @@ if ( !class_exists('Tikweb_Impersonate') ):
 
 		public function saveRecentUser($user){
 
+			$wp_date_format = get_option('date_format');
+			$fus_settings = get_option('fus_settings',[]);
 			$recent_user_opt = get_option('tikemp_recent_imp_users',[]);
-			$roles = tikemp_get_readable_rolename($user->roles[0]);
-			$keep = $user->data->ID.'&'.$user->data->display_name.'&'.$roles;
+			$roles = tikemp_get_readable_rolename(array_shift($user->roles));
+
+			if ( isset($fus_settings['fus_name']) ){
+				$name_display = $user->first_name.' '.$user->last_name;				
+			}else {
+				$name_display = ' ';
+			}
+
+			if ( isset($fus_settings['fus_role']) ){
+				$role_display = $roles;
+			} else {
+				$role_display = '';
+			}
+
+			if ( isset($fus_settings['fus_username']) ){
+				$role_display .= ' - '.$user->user_login;
+			}
+
+			$date_display = date($wp_date_format);
+
+			$keep = $user->data->ID.'&'.$name_display.'&'.$role_display.'&'.$date_display;
 
 			if ( !in_array($keep, $recent_user_opt) ){
 				array_unshift( $recent_user_opt, $keep );
@@ -241,19 +290,47 @@ add_action( 'wp_enqueue_scripts', 'tikemp_scripts' );
  * @return string [description]
  */
 function tikemp_impersonate_rusers(){
+
 	$ret = '';
 	$opt = get_option('tikemp_recent_imp_users',[]);
+	$fus_settings = get_option('fus_settings',[]);
 
 	if ( !empty($opt) ){
 		foreach ($opt as $key => $value) {
 			
-			$user = explode('&', $value);
-			
-			$user_id = isset($user[0]) ? $user[0] : null;
-			$user_name = isset($user[1]) ? $user[1] : null;
-			$user_role = isset($user[2]) ? $user[2] : null;
+			$user_role_display = '';
 
-			$ret .= '<a href="'.admin_url("?impersonate=$user_id").'">'.$user_name.' ('.$user_role.')'.'</a>'.PHP_EOL;
+			$user = explode('&', $value);
+			$user = array_filter($user);
+			$user_id = isset($user[0]) ? $user[0] : '';
+			$user_name = isset($user[1]) ? trim($user[1]) : '';
+			$user_role = isset($user[2]) ? trim($user[2]) : '';
+			$last_login_date = isset($user[3]) ? trim($user[3]) : '';
+
+			if ( !empty($user_name) && !empty($user_role) ){
+				$user_role_display = sprintf('( %s )', $user_role );
+			} else {
+
+				$rc = explode('-', $user_role);
+				$rc = array_map('trim',$rc);
+				$rc = array_filter($rc);
+
+				if ( count($rc) < 2 ){
+					$user_role = str_replace('-', '', $user_role);
+				}
+
+				$user_role_display = $user_role;
+			}
+
+			if ( !empty($last_login_date) && isset($fus_settings['fus_showdate']) ){
+				$last_login_date = sprintf('<span class="small-date">%s</span>',$last_login_date);
+			} else {
+				$last_login_date = '';
+			}
+
+			$ret .= '<a href="'.admin_url("?impersonate=$user_id").'">'.$user_name.' '.$user_role_display.' '.$last_login_date.'</a>'.PHP_EOL;
+
+			
 		}
 	}
 
@@ -295,6 +372,9 @@ function tikemp_adminbar_rendar(){
 					$html .= '<strong>'.__('Recent Users','fast-user-switching').'</strong>';
 					$html .= '<hr>'.tikemp_impersonate_rusers();
 				$html .= '</div>';
+				$html .= '<div id="tikemp_settings_wrap">';
+					$html .= '<a href="'.admin_url("options-general.php?page=fast_user_switching").'">'.__('Settings','fast-user-switching').'</a>';
+				$html .= '</div>';
 			$html .= '</div>';
 
 			$wp_admin_bar->add_menu(
@@ -333,13 +413,48 @@ function tikemp_user_search(){
 	$site_roles = tikemp_get_roles();
 
 	if ( !empty($user_query->results) ){
+		
+		$fus_settings = get_option('fus_settings',[]);
+
 		foreach ( $user_query->results as $user ) {
 
 			if( $user->ID == get_current_user_id() ) {
 				continue;
 			}
 
-			$ret .= '<a href="'.admin_url("?impersonate={$user->ID}").'">'.$user->display_name.' ('.$site_roles[$user->roles[0]].')'.'</a>'.PHP_EOL;
+			if ( empty($fus_settings) ){
+				$name_display = $user->first_name.' '.$user->last_name;
+				$user_role_display = ' ('.$site_roles[array_shift($user->roles)].' - '.$user->user_login.')';
+			}
+
+			if ( isset($fus_settings['fus_name']) ){
+				$name_display = $user->first_name.' '.$user->last_name;
+			} else {
+				$name_display = '';
+			}
+
+			if ( isset($fus_settings['fus_role']) ){
+				$user_role_display = $site_roles[array_shift($user->roles)];
+			} else {
+				$user_role_display = '';
+			}
+
+			if ( isset($fus_settings['fus_username']) ){
+
+				if ( empty($user_role_display) ){
+					$user_role_display = $user->user_login;
+				} else {
+					$user_role_display .= ' - '.$user->user_login;
+				}
+
+				$user_role_display = trim($user_role_display);
+
+				if ( !empty($name_display) && !empty($user_role_display) ){
+					$user_role_display = sprintf('( %s )', $user_role_display);
+				}
+			}
+
+			$ret .= '<a href="'.admin_url("?impersonate={$user->ID}").'">'.$name_display.' '.$user_role_display.'</a>'.PHP_EOL;
 		}
 	} else {
 		$ret .= '<strong>'.__('No user found!','fast-user-switching').'</strong>'.PHP_EOL;
@@ -357,7 +472,7 @@ add_action( 'wp_ajax_nopriv_tikemp_user_search', 'tikemp_user_search' );
 function tikemp_styles(){
 ?>
 <style type="text/css">
-#wpadminbar .quicklinks #wp-admin-bar-tikemp_impresonate_user ul li .ab-item{height:auto}#wpadminbar .quicklinks #wp-admin-bar-tikemp_impresonate_user #tikemp_username{height:22px;font-size:13px !important;padding:2px;width:145px;border-radius:2px !important;float:left;box-sizing:border-box !important;line-height: 10px;}#tikemp_search{width:auto;box-sizing:border-box}#tikemp_search_submit{height:22px;padding:2px;line-height:1.1;font-size:13px !important;border:0 !important;float:right;background-color:#fff !important;border-radius:2px !important;width:74px;box-sizing:border-box;color:#000 !important;}#tikemp_usearch_result{max-height: 320px;overflow-y: auto;margin-top:10px;float:left;}#tikemp_usearch_form{width: 226px}#tikemp_recent_users{float:left;}form#tikemp_usearch_form input[type="text"]{background-color:#fff !important;}
+#wpadminbar .quicklinks #wp-admin-bar-tikemp_impresonate_user ul li .ab-item{height:auto}#wpadminbar .quicklinks #wp-admin-bar-tikemp_impresonate_user #tikemp_username{height:22px;font-size:13px !important;padding:2px;width:145px;border-radius:2px !important;float:left;box-sizing:border-box !important;line-height: 10px;}#tikemp_search{width:auto;box-sizing:border-box}#tikemp_search_submit{height:22px;padding:2px;line-height:1.1;font-size:13px !important;border:0 !important;float:right;background-color:#fff !important;border-radius:2px !important;width:74px;box-sizing:border-box;color:#000 !important;}#tikemp_usearch_result{width:100%;max-height: 320px;overflow-y: auto;margin-top:10px;float:left;}#tikemp_usearch_form{width: 226px}#tikemp_recent_users{width:100%;float:left;}form#tikemp_usearch_form input[type="text"]{background-color:#fff !important;}#tikemp_settings_wrap{width: 100%;float:left;border-top:1px solid #ccc;}
 </style>
 <?php
 }
@@ -404,3 +519,12 @@ function tikemp_ajax_urls(){
 }
 add_action( 'wp_head', 'tikemp_ajax_urls' );
 add_action( 'admin_head', 'tikemp_ajax_urls' );
+
+/**
+ * Add settings in plugin action links
+ */
+add_filter( 'plugin_action_links_' . plugin_basename(__FILE__), 'tikemp_plugin_action_links' );
+function tikemp_plugin_action_links( $links ) {
+   $links[] = '<a href="'. esc_url( get_admin_url(null, 'options-general.php?page=fast_user_switching') ) .'">Settings</a>';
+   return $links;
+}

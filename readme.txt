@@ -3,9 +3,9 @@ Contributors: kasperta
 Tags: authentication, user, switch, switching, admin, impersonate
 Donate link: http://www.tikweb.dk/donate/
 Requires at least: 4.6
-Tested up to: 4.8
+Tested up to: 4.8.2
 Requires PHP: 5.2
-Stable tag: 1.2.2
+Stable tag: 1.3.3
 
 Allow only administrators to switch to and impersonate any site user, by selecting "Impersonate" on the users list.
 
@@ -36,6 +36,24 @@ Log out and you are back, the plugin remembers your original login, and returns 
 3. Recent impersonate user list
 
 == Changelog ==
+
+= 1.3.3 - 2017-10-11 =
+* Added a new link to the plugin settings below the line “Settings”.
+* Added an option to show the login date after the username for the last 5 logins, so by default it becomes: “Firstname Surname (Role - username - date).
+
+= 1.3.2 - 2017-10-11 =
+* Fixed settings issue
+
+= 1.3.1 - 2017-10-11 =
+* Fixed Fatal error, updated file "fast-user-switching.php" - line 304
+
+= 1.3.0 - 2017-10-11 =
+* Fixed User role issue
+* Added a new options for setting like "Show first name and surname", "Show role (access level)" and "Show user name". All three options are default enabled when you update this plugin.
+* Updated .po and .mp files
+
+= 1.2.3 - 2017-10-09 =
+* Fixed search for user role "employee" on the user switch dropdown, before it shows the username but the role didn't show inside ()
 
 = 1.2.2 - 2017-10-02 =
 * Fixed front-end style.

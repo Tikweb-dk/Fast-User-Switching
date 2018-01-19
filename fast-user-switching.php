@@ -285,7 +285,7 @@ if ( !class_exists('Tikweb_Impersonate') ):
 	add_action('init', array('Tikweb_Impersonate', 'init'));
 
 	// Admin bar hook
-	add_action('admin_bar_menu', array('Tikweb_Impersonate', 'changeLogoutText'), 999);
+	add_action('admin_bar_menu', array('Tikweb_Impersonate', 'changeLogoutText'));
 endif; 
 
 function tikemp_load_plugin_textdomain() {

@@ -68,7 +68,7 @@ if ( !class_exists('Tikweb_Impersonate') ):
 			add_action('wp_logout',	array($this, 'unimpersonate'), 1);
 			
 			// Only admins can use this plugin (for obvious reasons)
-			if(!current_user_can('add_users')) return;
+			if(!role_can_impersonate()) return;
 			
 			// Add a column to the user list table which will allow you to impersonate that user
 			add_filter('manage_users_columns', array($this, 'user_table_columns'));
@@ -109,9 +109,21 @@ if ( !class_exists('Tikweb_Impersonate') ):
 
 		public function saveRecentUser($user){
 
+			$user_id = get_current_user_id();
+
+			if ( current_user_can('manage_options') ){
+				$recent_user_opt = get_option('tikemp_recent_imp_users',[]);
+			} else {
+				$recent_user_opt = get_user_meta( $user_id, 'tikemp_recent_imp_users', true );
+
+				if ( empty($recent_user_opt) ){
+					$recent_user_opt = [];
+				}
+			}
+
 			$wp_date_format = get_option('date_format');
 			$fus_settings = get_option('fus_settings',[]);
-			$recent_user_opt = get_option('tikemp_recent_imp_users',[]);
+			
 			$roles = tikemp_get_readable_rolename(array_shift($user->roles));
 
 			if ( isset($fus_settings['fus_name']) ){
@@ -145,7 +157,12 @@ if ( !class_exists('Tikweb_Impersonate') ):
 			}
 
 			$recent_user_opt = array_slice($recent_user_opt, 0,5);
-			update_option('tikemp_recent_imp_users',$recent_user_opt);
+			
+			if ( current_user_can('manage_options') ){
+				update_option('tikemp_recent_imp_users',$recent_user_opt);
+			} else {
+				update_user_meta( $user_id, 'tikemp_recent_imp_users', $recent_user_opt, '' );
+			}
 
 		}//End saveRecentUser
 
@@ -156,10 +173,25 @@ if ( !class_exists('Tikweb_Impersonate') ):
 
 			global $current_user;
 			
+			$block_attempt = false;
 			$user = get_userdata( $user_id );
 
-			if( $user === false ){
-				return wp_redirect(admin_url());
+			if ( $user == false ){
+
+				$block_attempt = true;
+			}
+
+			if ( !current_user_can( 'manage_options' ) ){
+				
+				if ( in_array('administrator', (array) $user->roles) ){
+					$block_attempt = true;
+				}
+
+			}
+
+			if( $block_attempt === true ){
+				$redirect = add_query_arg( 'impna', 'true2', admin_url() );
+				return wp_redirect( $redirect );
 			}
 
 			$this->saveRecentUser($user);
@@ -313,7 +345,13 @@ add_action( 'wp_enqueue_scripts', 'tikemp_scripts' );
 function tikemp_impersonate_rusers(){
 
 	$ret = '';
-	$opt = get_option('tikemp_recent_imp_users',[]);
+	
+	if ( current_user_can('manage_options') ){
+		$opt = get_option('tikemp_recent_imp_users',[]);
+	} else {
+		$opt = get_user_meta( get_current_user_id(), 'tikemp_recent_imp_users', true );
+	}
+
 	$fus_settings = get_option('fus_settings',[]);
 
 	if ( !empty($opt) ){
@@ -359,6 +397,62 @@ function tikemp_impersonate_rusers(){
 }
 
 
+function user_can_switch( $user_data = null ){
+
+	$can_switch = false;
+
+	// check if admin , directy give him access
+	if ( current_user_can( 'manage_options' ) ){
+		return true;
+	}
+
+	// if no user_data passed to function, get user data.
+	if ( empty($user_data) ){
+		$user_data = wp_get_current_user();
+	}
+
+	// if user isn't exists ( case visitor ) return false
+	if ( ! $user_data->exists() ){
+		return false;
+	}
+
+	if ( current_user_can( 'edit_users' ) || current_user_can( 'list_users' ) ){
+		return true;
+	}
+
+}
+
+function role_can_impersonate( ){
+
+	if ( current_user_can( 'manage_options' ) ){
+		return true;
+	}
+
+	$cur_user = wp_get_current_user();
+
+	if ( !$cur_user->exists() ){
+		return false;
+	}
+
+	$settings = get_option('fus_settings');
+
+	if ( isset($settings['fus_roles']) && !empty($settings['fus_roles']) ){
+
+		
+		$cur_user_roles = (array) $cur_user->roles;
+		$matched = array_intersect($cur_user_roles, $settings['fus_roles']);
+
+		if ( count( $matched ) > 0 ){
+			return true;
+		} else {
+			return false;
+		}
+
+	} else{
+		return false;
+	}
+}
+
 /**
  * Rendar user search function in wp admin bar. 
  */
@@ -370,7 +464,7 @@ function tikemp_adminbar_rendar(){
 		global $wp_admin_bar;
 
 		// if current user can edit_users than he can see this.
-		if(current_user_can('manage_options')){
+		if( role_can_impersonate() ){
 
 			$wp_admin_bar->add_menu(
 				array(
@@ -393,9 +487,12 @@ function tikemp_adminbar_rendar(){
 					$html .= '<strong>'.__('Recent Users','fast-user-switching').'</strong>';
 					$html .= '<hr>'.tikemp_impersonate_rusers();
 				$html .= '</div>';
-				$html .= '<div id="tikemp_settings_wrap">';
-					$html .= '<a href="'.admin_url("options-general.php?page=fast_user_switching").'">'.__('Settings','fast-user-switching').'</a>';
-				$html .= '</div>';
+
+				if ( current_user_can('manage_options') ):
+					$html .= '<div id="tikemp_settings_wrap">';
+						$html .= '<a href="'.admin_url("options-general.php?page=fast_user_switching").'">'.__('Settings','fast-user-switching').'</a>';
+					$html .= '</div>';
+				endif;
 			$html .= '</div>';
 
 			$wp_admin_bar->add_menu(
@@ -405,11 +502,12 @@ function tikemp_adminbar_rendar(){
 					'title'		=> $html,
 				)
 			);
+
 		}//if(current_user_can('manage_optiona'))
 
 	}//if(is_admin_bar_showing())	
 }
-add_action( 'wp_before_admin_bar_render', 'tikemp_adminbar_rendar', 1 );
+add_action( 'wp_before_admin_bar_render', 'tikemp_adminbar_rendar', 9999, 1 );
 
 
 /**
@@ -432,7 +530,12 @@ function tikemp_user_search(){
 		$args['search_columns'] = ['user_login','user_email'];
 	}
 
+	if ( !current_user_can( 'manage_options' ) ){
+		$args['role__not_in'] = 'Administrator';
+	}
+
 	$user_query = new WP_User_Query( $args );
+
 	$ret = '';
 
 	$site_roles = tikemp_get_roles();

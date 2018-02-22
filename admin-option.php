@@ -57,6 +57,78 @@ function tikemp_settings_init(  ) {
 
 }
 
+function tikemp_role_select_repeater(){
+
+	$roles = wp_roles()->role_names;
+
+	$options = get_option( 'fus_settings', [] );
+	$fus_roles = isset($options['fus_roles']) ? $options['fus_roles'] : [];
+
+	if( empty($fus_roles) ){
+		$fus_roles[] = 'administrator';
+	}
+
+	$fus_roles = array_unique($fus_roles);
+
+	echo '<table class="form-table" id="role-select">';
+
+	?>
+	
+	<tr class="role-selector hidden">
+		<th scope="row"><?= __('Enable User Switching For','fast_user_switching'); ?></th>
+		<td>
+			<select name="fus_settings[fus_roles][]" >
+
+				<?php 
+
+					foreach ($roles as $rkey => $rval) {
+						?>
+
+							<option value="<?= $rkey; ?>"><?= $rval; ?></option>
+
+						<?php
+					}
+				?>
+			</select>
+			<strong><?= __('Roles','fast_user_switching'); ?></strong>
+			<button type="button" class="remove-this-row"><span class="dashicons dashicons-no-alt"></span></button>
+		</td>
+	</tr>
+
+	<?php
+	foreach ($fus_roles as $key => $value) :
+	?>
+	
+		<tr class="role-selector">
+			<th scope="row"><?= __('Enable User Switching For','fast_user_switching'); ?></th>
+			<td>
+				<select name="fus_settings[fus_roles][]" >
+
+				<?php 
+
+					foreach ($roles as $rkey => $rval) {
+						?>
+
+							<option value="<?= $rkey; ?>" <?php selected( $value, $rkey, true ); disabled( $value,'administrator',true);?>><?= $rval; ?></option>
+
+						<?php
+					}
+				?>
+				</select>
+				<strong><?= __('Roles','fast_user_switching'); ?></strong>
+				<?php if ( $value != 'administrator' ): ?>
+					<button type="button" class="remove-this-row"><span class="dashicons dashicons-no-alt"></span></button>
+				<?php endif; ?>
+			</td>
+		</tr>
+
+
+	<?php
+	endforeach;
+	
+	echo '</table>';
+}
+
 
 function tikemp_name_render(  ) { 
 
@@ -108,14 +180,18 @@ function tikemp_settings_section_callback(  ) {
 function tikemp_options_page(  ) { 
 
 	?>
-	<form action='options.php' method='post'>
+	<form action='options.php' method='post' id='tikemp_settings_page'>
 
 		<h2>Fast user switching</h2>
 
 		<?php
 		settings_fields( 'pluginPage' );
 		do_settings_sections( 'pluginPage' );
+		echo '<hr/>';
+		echo '<h2>'.__('Role Assign','fast-user-switching').'</h2>';
+		tikemp_role_select_repeater();
 		submit_button();
+		tikemp_admin_scripts();
 		?>
 
 	</form>
@@ -176,4 +252,49 @@ function tikemp_updateUserInfo($user_id,$fus_settings){
 	$keep = $user->data->ID.'&'.$name_display.'&'.$role_display;
 
 	return $keep;
+}
+
+function tikemp_admin_scripts(){
+
+	?>
+	<style>
+		button.remove-this-row{
+			width: 30px;
+		    height: 22px;
+		    background-color: #ce3030;
+		    border: 0 none;
+		    color: #fff;
+		    font-size: 21px;
+		    line-height: 14px;
+		    padding: 0;
+		    border-radius: 2px;
+		    cursor: pointer;
+		}
+	</style>
+	<script>
+
+		jQuery(document).ready(function($) {
+
+		$('table#role-select').append('<button type="button" class="button button-default add-new-roles" >Add new</button>');
+
+		$('.form-table').on('click','.remove-this-row', function(){
+			$(this).parent().parent().remove();
+		});
+
+		$('table#role-select').on('click','.add-new-roles',function(){
+
+				cont = $('tr.role-selector').html();
+
+				console.log(cont);
+
+				$('table#role-select tbody').append('<tr>'+cont+'</tr>');
+
+		});
+
+	});
+
+	</script>
+
+
+	<?php
 }

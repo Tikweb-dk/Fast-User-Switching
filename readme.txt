@@ -1,17 +1,21 @@
 === Fast User Switching ===
 Contributors: kasperta
-Tags: authentication, user, switch, switching, admin, impersonate
+Tags: user, switching, switch, users, admin, bar, top, fast, roles, impersonate, authentication, tikweb
 Donate link: http://www.tikweb.dk/donate/
 Requires at least: 4.6
-Tested up to: 4.9
+Tested up to: 4.9.4
 Requires PHP: 5.2
-Stable tag: 1.3.7
+Stable tag: 1.4.8
 
-Allow only administrators to switch to and impersonate any site user, by selecting "Impersonate" on the users list.
+Fast user switching between users and roles directly from the admin bar - switch from a list or search for users/roles by id, username, mail etc.
 
 == Description ==
 
-Allow only administrators to impersonate any site user. Choose user to impersonate, by clicking new "Impersonate" link in the user list. To return to your own user, just log out. A log out link is available in the black top menu, top right, profile submenu.
+Fast user switching between users and roles directly from the admin bar or the user list - switch from a list or search for users/roles by id, username, mail etc.
+
+Use settings to select roles that are allowed to switch user. By default only administrators can switch user.
+
+To return to your own user, just log out. A log out link is available in the black top menu, top right, profile submenu.
 
 When you impersonate a user, you will be effectively logged in as that user, and acquire the same rights - very convenient for testing rights for users. Also practical for consultants, bureaus and copy-writers who need to create and edit content for customers.
 
@@ -37,55 +41,10 @@ Log out and you are back, the plugin remembers your original login, and returns 
 
 == Changelog ==
 
-= 1.3.7 - 2017-11-29 =
-* When switching user on the backend, redirect to the vendor dashboard.
+= 1.4.8 - 2019-01-02 =
+* Fixed the security issue, now the secrate key will be generated from WP salt function which is not the same key for other websites that use this plugin.
 
-= 1.3.6 - 2017-11-29 =
-* When switching user on the frontend back to the current page.
-
-= 1.3.5 - 2017-11-28 =
-* Fixed "Switch User" issue on the front end, which should not show the black top bar as vendor is not admin.
-
-= 1.3.4 - 2017-11-22 =
-* To be able to search in e-mail address, user name, ID and person names.
-
-= 1.3.3 - 2017-10-11 =
-* Added a new link to the plugin settings below the line “Settings”.
-* Added an option to show the login date after the username for the last 5 logins, so by default it becomes: “Firstname Surname (Role - username - date).
-
-= 1.3.2 - 2017-10-11 =
-* Fixed settings issue
-
-= 1.3.1 - 2017-10-11 =
-* Fixed Fatal error, updated file "fast-user-switching.php" - line 304
-
-= 1.3.0 - 2017-10-11 =
-* Fixed User role issue
-* Added a new options for setting like "Show first name and surname", "Show role (access level)" and "Show user name". All three options are default enabled when you update this plugin.
-* Updated .po and .mp files
-
-= 1.2.3 - 2017-10-09 =
-* Fixed search for user role "employee" on the user switch dropdown, before it shows the username but the role didn't show inside ()
-
-= 1.2.2 - 2017-10-02 =
-* Fixed front-end style.
-
-= 1.2.1 - 2017-10-02 =
-* Updated .po and .mp files
-
-= 1.2.0 - 2017-10-02 =
-* Shortened the length of the dropdown, so the length matches ex. 5 latest. If you have searched, then length should match 5 latest and 10 search results.
-* The search results included a scroll bar, so you can scroll inside dropdown, and see all results.
-* Fixed the input field in the top bar and the button looks a bit strange in Safari.
-* Added the users access level to each line for last results and search results, so they are listed as “Firstname Surname (Access level)”
-* Changed “Impersonate user” to “Switch user” in all texts.
-* Changed input field “Submit” to “Search/Søg”
-
-= 1.0.1 =
-* Fixed the issue for prior to PHP 5.5
-
-= 1.0.0 =
-* Initial release.
+[Changelog](https://plugins.svn.wordpress.org/fast-user-switching/trunk/changelog.txt)
 
 == Upgrade Notice ==
 

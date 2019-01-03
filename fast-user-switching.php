@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name:       Fast User Switching
- * Description:       Allow only administrators to switch to and impersonate any site user. Choose user to impersonate, by clicking new "Impersonate" link in the user list. To return to your own user, just log out. A log out link is available in the black top menu, top right, profile submenu.
- * Version:           1.3.7
+ * Description:       Fast user switching between users and roles directly from the admin bar - switch from a list or search for users/roles by id, username, mail etc.
+ * Version:           1.4.8
  * Author:            Tikweb
  * Author URI:        http://www.tikweb.dk/
  * Plugin URI:        http://www.tikweb.com/wordpress/plugins/fast-user-switching/
@@ -226,6 +226,10 @@ if ( !class_exists('Tikweb_Impersonate') ):
 				
 			}
 
+			// add impersonatting param with url to detect this request is impersonatting.
+			$redirect_url = $redirect_url.'?imp=true';
+
+			
 			wp_redirect( $redirect_url );
 			exit;
 		}//End impersonate
@@ -294,8 +298,13 @@ if ( !class_exists('Tikweb_Impersonate') ):
 		private static function encryptDecrypt($action, $string){
 			$output = false;
 			$encrypt_method = "AES-256-CBC";
-			$secret_key = 'This is fus hidden key';
-			$secret_iv = 'This is fus hidden iv';
+			
+			//$secret_key = 'This is fus hidden key';
+			//$secret_iv = 'This is fus hidden iv';
+
+			$secret_key = wp_salt();
+            $secret_iv = wp_salt('secure_auth');
+
 			// hash
 			$key = hash('sha256', $secret_key);
 
@@ -600,7 +609,7 @@ add_action( 'wp_ajax_nopriv_tikemp_user_search', 'tikemp_user_search' );
 function tikemp_styles(){
 ?>
 <style type="text/css">
-#wpadminbar .quicklinks #wp-admin-bar-tikemp_impresonate_user ul li .ab-item{height:auto}#wpadminbar .quicklinks #wp-admin-bar-tikemp_impresonate_user #tikemp_username{height:22px;font-size:13px !important;padding:2px;width:145px;border-radius:2px !important;float:left;box-sizing:border-box !important;line-height: 10px;}#tikemp_search{width:auto;box-sizing:border-box}#tikemp_search_submit{height:22px;padding:2px;line-height:1.1;font-size:13px !important;border:0 !important;float:right;background-color:#fff !important;border-radius:2px !important;width:74px;box-sizing:border-box;color:#000 !important;}#tikemp_usearch_result{width:100%;max-height: 320px;overflow-y: auto;margin-top:10px;float:left;}#tikemp_usearch_form{width: 226px}#tikemp_recent_users{width:100%;float:left;}form#tikemp_usearch_form input[type="text"]{background-color:#fff !important;}#tikemp_settings_wrap{width: 100%;float:left;border-top:1px solid #ccc;}
+#wpadminbar .quicklinks #wp-admin-bar-tikemp_impresonate_user ul li .ab-item{height:auto}#wpadminbar .quicklinks #wp-admin-bar-tikemp_impresonate_user #tikemp_username{height:22px;font-size:13px !important;padding:2px;width:145px;border-radius:2px !important;float:left;box-sizing:border-box !important;line-height: 10px;}#tikemp_search{width:auto;box-sizing:border-box}#tikemp_search_submit{height:22px;padding:2px;line-height:1.1;font-size:13px !important;border:0 !important;float:right;background-color:#fff !important;border-radius:2px !important;width:74px;box-sizing:border-box;color:#000 !important;}#tikemp_usearch_result{width:100%;max-height: 320px;overflow-y: auto;margin-top:10px;float:left;}#tikemp_usearch_form{width: 226px}#tikemp_recent_users{width:100%;float:left;}form#tikemp_usearch_form input[type="text"]{background-color:#fff !important;}#tikemp_settings_wrap{width: 100%;float:left;border-top:1px solid #ccc;}#wpadminbar .quicklinks .menupop ul li a, #wpadminbar .quicklinks .menupop.hover ul li a {color: #b4b9be;}
 </style>
 <?php
 }
@@ -656,3 +665,59 @@ function tikemp_plugin_action_links( $links ) {
    $links[] = '<a href="'. esc_url( get_admin_url(null, 'options-general.php?page=fast_user_switching') ) .'">Settings</a>';
    return $links;
 }
+
+/**
+ * Empty Woocommerce Cart during switching
+ */
+add_action('init',function(){
+
+	if ( !isset($_GET['imp']) && empty($_GET['imp']) ){
+		return;
+	}
+
+	// disable on admin area, where we don't have access to $woocommerce global variable.
+	if ( is_admin() ){
+		return;
+	}
+
+	// if Woocommerce plugin is not activate than exit.
+	if ( !is_plugin_active( 'woocommerce/woocommerce.php' ) ){
+		return;
+	}
+
+	global $woocommerce;
+
+	$settings = get_option('fus_settings',true);
+
+	if ( isset($settings['fus_woo']) ){
+		$woocommerce->cart->empty_cart();
+	}
+		
+
+});
+
+/**
+ * Add User switching link on order detail page.
+ */
+add_action('woocommerce_admin_order_data_after_order_details',function( $order ){
+
+	// if role can't impersonate than let it go!
+	if ( !role_can_impersonate() ){
+		return false;
+	}
+
+	$settings = get_option('fus_settings',true);
+
+	if ( !isset($settings['fus_showon_woo_order']) || empty($settings['fus_showon_woo_order']) ){
+		return false;
+	}
+
+	$user 		=	get_user_by( 'id', $order->get_user_id() );
+
+	if( empty($user) ){
+		return false;
+	}
+
+	echo '<p class="form-field form-field-wide"><a href="?impersonate='.$user->ID.'"> '.__('Switch to ','fast-user-switching').$user->data->display_name.' </a></p>';
+
+});

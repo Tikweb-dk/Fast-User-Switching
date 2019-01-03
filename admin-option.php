@@ -54,6 +54,26 @@ function tikemp_settings_init(  ) {
 		'tikemp_pluginPage_section'
 	);
 
+	if ( is_plugin_active( 'woocommerce/woocommerce.php' ) ){
+		
+		add_settings_field(
+			'fus_woo',
+			__( 'Empty WooCommerce cart item during switching','fast-user-switching' ),
+			'tikemp_woocom_render',
+			'pluginPage',
+			'tikemp_pluginPage_section'
+		);
+
+		add_settings_field(
+			'fus_showon_woo_order',
+			__( 'Switch user from order details page','fast-user-switching' ),
+			'tikemp_wooorder_render',
+			'pluginPage',
+			'tikemp_pluginPage_section'
+		);
+
+	}
+
 
 }
 
@@ -75,7 +95,7 @@ function tikemp_role_select_repeater(){
 	?>
 	
 	<tr class="role-selector hidden">
-		<th scope="row"><?= __('Enable User Switching For','fast_user_switching'); ?></th>
+		<th scope="row"><?= __('Enable User Switching For','fast-user-switching'); ?></th>
 		<td>
 			<select name="fus_settings[fus_roles][]" >
 
@@ -90,7 +110,7 @@ function tikemp_role_select_repeater(){
 					}
 				?>
 			</select>
-			<strong><?= __('Roles','fast_user_switching'); ?></strong>
+			<strong><?= __('Roles','fast-user-switching'); ?></strong>
 			<button type="button" class="remove-this-row"><span class="dashicons dashicons-no-alt"></span></button>
 		</td>
 	</tr>
@@ -100,7 +120,7 @@ function tikemp_role_select_repeater(){
 	?>
 	
 		<tr class="role-selector">
-			<th scope="row"><?= __('Enable User Switching For','fast_user_switching'); ?></th>
+			<th scope="row"><?= __('Enable User Switching For','fast-user-switching'); ?></th>
 			<td>
 				<select name="fus_settings[fus_roles][]" >
 
@@ -115,7 +135,7 @@ function tikemp_role_select_repeater(){
 					}
 				?>
 				</select>
-				<strong><?= __('Roles','fast_user_switching'); ?></strong>
+				<strong><?= __('Roles','fast-user-switching'); ?></strong>
 				<?php if ( $value != 'administrator' ): ?>
 					<button type="button" class="remove-this-row"><span class="dashicons dashicons-no-alt"></span></button>
 				<?php endif; ?>
@@ -168,6 +188,22 @@ function tikemp_lastSwitchedDate_render(){
 	$fus_showdate = isset($options['fus_showdate']) ? $options['fus_showdate'] : 0;
 	?>
 	<input type='checkbox' name='fus_settings[fus_showdate]' <?php checked( $fus_showdate, 1 ); ?> value='1'>
+	<?php
+}
+
+function tikemp_woocom_render(){
+	$options = get_option( 'fus_settings', []);
+	$fus_woo = isset($options['fus_woo']) ? $options['fus_woo'] : 0;
+	?>
+	<input type='checkbox' name='fus_settings[fus_woo]' <?php checked( $fus_woo, 1 ); ?> value='1'>
+	<?php
+}
+
+function tikemp_wooorder_render(){
+	$options = get_option( 'fus_settings', []);
+	$fus_showon_woo_order = isset($options['fus_showon_woo_order']) ? $options['fus_showon_woo_order'] : 0;
+	?>
+	<input type='checkbox' name='fus_settings[fus_showon_woo_order]' <?php checked( $fus_showon_woo_order, 1 ); ?> value='1'>
 	<?php
 }
 
@@ -275,23 +311,21 @@ function tikemp_admin_scripts(){
 
 		jQuery(document).ready(function($) {
 
-		$('table#role-select').append('<button type="button" class="button button-default add-new-roles" >Add new</button>');
+			$('table#role-select').append('<button type="button" class="button button-default add-new-roles" >Add new</button>');
 
-		$('.form-table').on('click','.remove-this-row', function(){
-			$(this).parent().parent().remove();
+			$('.form-table').on('click','.remove-this-row', function(){
+				$(this).parent().parent().remove();
+			});
+
+			$('table#role-select').on('click','.add-new-roles',function(){
+
+					cont = $('tr.role-selector').html();
+
+					$('table#role-select tbody').append('<tr>'+cont+'</tr>');
+
+			});
+
 		});
-
-		$('table#role-select').on('click','.add-new-roles',function(){
-
-				cont = $('tr.role-selector').html();
-
-				console.log(cont);
-
-				$('table#role-select tbody').append('<tr>'+cont+'</tr>');
-
-		});
-
-	});
 
 	</script>
 

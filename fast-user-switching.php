@@ -298,10 +298,8 @@ if ( !class_exists('Tikweb_Impersonate') ):
 		private static function encryptDecrypt($action, $string){
 			$output = false;
 			$encrypt_method = "AES-256-CBC";
-			
-			//$secret_key = 'This is fus hidden key';
-			//$secret_iv = 'This is fus hidden iv';
 
+			// secret keys from WordPress Salts
 			$secret_key = wp_salt();
             $secret_iv = wp_salt('secure_auth');
 
